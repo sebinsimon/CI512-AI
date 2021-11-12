@@ -1,0 +1,18 @@
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+
+np.random.seed(10)
+data_path= "Advertising.csv"
+
+data = pd.read_csv(data_path, index_col=0)
+array_items= ['TV', 'radio', 'newspaper'] 
+X = data[array_items]
+y = data.sales
+X_train, X_test, y_train, y_test= train_test_split(X, y)
+linearreg= LinearRegression()
+linearreg.fit(X_train, y_train)
+y_predict= linearreg.predict(X_test)
+print(np.sqrt(metrics.mean_squared_error(y_test, y_predict)))
