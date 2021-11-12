@@ -1,0 +1,71 @@
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+import pandas as pd
+from sklearn.model_selection import cross_val_predict
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.ensemble import StackingClassifier
+
+
+
+import numpy as np
+
+#This change the dataset accuracy and precision
+np.random.seed(11)
+
+data = pd.read_csv("iris.data", skiprows=0)
+print(data)
+
+#clf = KNeighborsClassifier(n_neighbors=3)
+clf1 = KNeighborsClassifier()
+clf2 = DecisionTreeClassifier()
+clf3 = RandomForestClassifier()
+clf4 = MLPClassifier()
+clf5 = StackingClassifier(estimators=[ ('a1', clf1), ('a2', clf2), ('a3', clf3)], final_estimator=clf1)
+
+#For iris.data
+# This is the input value [0:3] means 0 to 3rd column. Here we start from 0 ends in 3rd column 
+X = data.values[:, 0:3]
+#For spam.cv
+#X = data.values[:, 0:56]
+#For iris.data
+# This is the oupt value which is usually the last column of a dataset
+Y = data.values[:,4]
+#For spam.cv
+#Y = data.values[:,57]
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.2)
+#Change clf3 from here to get the result
+clf = clf5.fit(X_train, Y_train)
+
+Y_prediction = clf.predict(X_test)
+print("Train/test accuracy KNN:",accuracy_score(Y_test,Y_prediction))
+
+precision = precision_score(Y_test, Y_prediction, average='macro')
+print('Precision KNN: ', precision)
+
+from sklearn.model_selection import ShuffleSplit
+cv = ShuffleSplit(n_splits=3, test_size=0.2)
+
+from sklearn.model_selection import cross_val_score
+scores = cross_val_score(clf, X, Y, cv=cv)
+print()
+print("Cross fold validation accuracy scores:",scores)
+print("Cross fold validation accuracy mean:",scores.mean())
+
+#########################
+
+
+eclf1 = VotingClassifier(estimators=[ ('a1', clf1), ('a2', clf2), ('a3', clf3)], voting='hard')
+eclf1 = eclf1.fit(X,Y)
+scores2 = cross_val_score(eclf1, X, Y, cv=cv)
+print()
+print("Cross fold validation accuracy scores for the ensemble:",scores2)
+print("Cross fold validation accuracy mean for the ensemble:",scores2.mean())
+
+scores3 = cross_val_score(eclf1, X, Y, cv=cv, scoring='precision_macro')
+print()
+print("Cross fold validation precision scores for the ensemble:",scores3)
+print("Cross fold validation precision mean for the ensemble:",scores3.mean())
