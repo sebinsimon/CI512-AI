@@ -1,0 +1,155 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.graph_objs as go
+import plotly.offline as py
+
+
+
+from sklearn.model_selection import train_test_split, cross_validate
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.model_selection import cross_val_predict
+
+
+
+
+# loading dataset with pandas(pd)
+datast = pd.read_csv("diabetes.csv")
+
+# print the first 10 rows of the dataset
+datast.head(10)
+
+# Data type, null values in the dataset and memory usage
+datast.info()
+
+# count tells us the number of NoN-empty rows in a feature
+# mean tells us the mean value of that features
+# std is the Standard Deviation of the feature
+# min is the minimum value of the feature
+# 25%, 50%, and 75% are the precentile/quratile of each features. This helps to find Outliers
+# max is the maximum value of the feature
+
+datast.describe()
+
+# Number of rows and columns in the dataset
+datast.shape
+
+# for multivariate analysis
+sns.pairplot(datast, hue = "Outcome", palette = "Dark2_r")
+plt.legend(["Non Diabetic", "Diabetic"])
+plt.show()
+
+# Heatmap for unclean data
+# plt.figure(figsize=(7, 6))
+sns.heatmap(datast.corr(), fmt = ".2f", annot = True, cmap = "RdYlGn")
+
+fig_p = datast.hist(figsize = (20, 20))
+
+# Visual count how many healthy and diabetic people in our dataset
+
+D = datast[(datast["Outcome"] != 0)]
+H = datast[(datast["Outcome"] == 0)]
+
+bar_graph = go.Bar(x = datast["Outcome"].value_counts().values.tolist(), 
+                   y = ["Healthy", "Diabetic"],
+                orientation = "h", 
+                  text=datast["Outcome"].value_counts().values.tolist(), 
+                  textfont=dict(size=14),
+                  textposition = "auto",
+                  opacity = 0.8, marker = dict(
+                  color = ["blue", "lightblue"],
+                  line = dict(color = "#000000", width = 2)))
+
+layout = dict(title = "Count of Outcome")
+fig = dict(data = [bar_graph], layout=layout)
+py.plot(fig)
+
+import plotly.figure_factory as ff
+
+def plot_dis(data_select, size_bin) :  
+
+    data_st1 = D[data_select]
+    data_st2 = H[data_select]
+    group_data = [data_st1, data_st2]
+    
+    group_labels = ['Diabetic', 'Healthy']
+    colors = ['#FFD700', '#7EC0EE']
+
+    fig = ff.create_distplot(group_data, group_labels, colors = colors, show_hist = True, bin_size = size_bin, curve_type='kde')
+    
+    fig['layout'].update(title = data_select)
+
+    py.iplot(fig)
+    
+plot_dis("Glucose",0)
+
+plot_dis("Insulin",0)
+
+# To check any duplicated rows in our dataset
+datast.duplicated().sum()
+
+# Check any missing values in our dataset+
+def checking_val(datast):
+        null_valu = datast.isnull().sum().sort_values(ascending=False)
+        null_perc = (datast.isnull().sum()/datast.isnull().count()).sort_values(ascending = False)
+        null_valu = pd.concat([null_valu, null_perc], axis = 1, keys = ["Missing Value", "Missing Percent"])
+        return null_valu
+    
+    
+checking_val(datast)
+
+# KNeighbor Classifier
+from sklearn.neighbors import KNeighborsClassifier
+
+clf1 = KNeighborsClassifier()
+
+X = datast.values[:, 0:7]
+Y = datast.values[:, 8]
+
+
+# X_train is used to train the model 
+# X_test is used to make prediction in the testing phase
+# Y_train is used to predicted by our model
+# Y_test is used to test the accuracy between the actual and predicted result
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.25)
+
+
+clf = clf1.fit(X_train, Y_train)
+
+Y_prediction = clf.predict(X_test)
+print("Train/test accuracy KNeighbors:", accuracy_score(Y_test, Y_prediction))
+print()
+precision = precision_score(Y_test, Y_prediction, average="macro")
+print("Precision KNeighbors", precision)
+
+# Cross validation
+from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import cross_val_score
+
+cv = ShuffleSplit(n_splits = 5, test_size = 0.25)
+scores = cross_val_score(clf, X, Y, cv=cv)
+
+print("Cross fold validation accuracy score:", scores)
+print("Cross fold validation accuracy mean:", scores.mean())
+
+from sklearn.ensemble import RandomForestClassifier
+
+test_scores = []
+train_scores = []
+
+for i in range (1, 15):
+    
+    knn = RandomForestClassifier(i)
+    knn.fit(X_train, Y_train)
+    
+    train_scores.append(knn.score(X_train, Y_train))
+    test_scores.append(knn.score(X_test, Y_test))
+    
+print(knn)    
+print(train_scores)
+
+# plt.figure(figsize=(12, 5))
+# p = sns.lineplot(range(1, 15), test_scores, marker= "*", label="Train Score")
+# p = sns.lineplot(range(1, 15), train_scores, marker = "o", label= "Test Score")
